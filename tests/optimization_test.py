@@ -20,12 +20,7 @@ import unittest
 
 import torch
 
-from pytorch_pretrained_bert import BertAdam
-from pytorch_pretrained_bert import OpenAIAdam
-from pytorch_pretrained_bert.optimization import ConstantLR, WarmupLinearSchedule, WarmupConstantSchedule, \
-    WarmupCosineWithWarmupRestartsSchedule, WarmupCosineWithHardRestartsSchedule, WarmupCosineSchedule
-import numpy as np
-
+import optimization
 
 class OptimizationTest(unittest.TestCase):
 
@@ -37,10 +32,10 @@ class OptimizationTest(unittest.TestCase):
     def test_adam(self):
         w = torch.tensor([0.1, -0.2, -0.1], requires_grad=True)
         target = torch.tensor([0.4, 0.2, -0.5])
-        criterion = torch.nn.MSELoss()
+        criterion = torch.nn.MSELoss(reduction='elementwise_mean')
         # No warmup, constant schedule, no gradient clipping
-        optimizer = BertAdam(params=[w], lr=2e-1,
-                                          weight_decay=0.0,
+        optimizer = optimization.BERTAdam(params=[w], lr=2e-1,
+                                          weight_decay_rate=0.0,
                                           max_grad_norm=-1)
         for _ in range(100):
             loss = criterion(w, target)
@@ -49,42 +44,6 @@ class OptimizationTest(unittest.TestCase):
             w.grad.detach_() # No zero_grad() function on simple tensors. we do it ourselves.
             w.grad.zero_()
         self.assertListAlmostEqual(w.tolist(), [0.4, 0.2, -0.5], tol=1e-2)
-
-
-class ScheduleInitTest(unittest.TestCase):
-    def test_bert_sched_init(self):
-        m = torch.nn.Linear(50, 50)
-        optim = BertAdam(m.parameters(), lr=0.001, warmup=.1, t_total=1000, schedule=None)
-        self.assertTrue(isinstance(optim.param_groups[0]["schedule"], ConstantLR))
-        optim = BertAdam(m.parameters(), lr=0.001, warmup=.1, t_total=1000, schedule="none")
-        self.assertTrue(isinstance(optim.param_groups[0]["schedule"], ConstantLR))
-        optim = BertAdam(m.parameters(), lr=0.001, warmup=.01, t_total=1000)
-        self.assertTrue(isinstance(optim.param_groups[0]["schedule"], WarmupLinearSchedule))
-        # shouldn't fail
-
-    def test_openai_sched_init(self):
-        m = torch.nn.Linear(50, 50)
-        optim = OpenAIAdam(m.parameters(), lr=0.001, warmup=.1, t_total=1000, schedule=None)
-        self.assertTrue(isinstance(optim.param_groups[0]["schedule"], ConstantLR))
-        optim = OpenAIAdam(m.parameters(), lr=0.001, warmup=.1, t_total=1000, schedule="none")
-        self.assertTrue(isinstance(optim.param_groups[0]["schedule"], ConstantLR))
-        optim = OpenAIAdam(m.parameters(), lr=0.001, warmup=.01, t_total=1000)
-        self.assertTrue(isinstance(optim.param_groups[0]["schedule"], WarmupLinearSchedule))
-        # shouldn't fail
-
-
-class WarmupCosineWithRestartsTest(unittest.TestCase):
-    def test_it(self):
-        m = WarmupCosineWithWarmupRestartsSchedule(warmup=0.05, t_total=1000., cycles=5)
-        x = np.arange(0, 1000)
-        y = [m.get_lr(xe) for xe in x]
-        y = np.asarray(y)
-        expected_zeros = y[[0, 200, 400, 600, 800]]
-        print(expected_zeros)
-        expected_ones = y[[50, 250, 450, 650, 850]]
-        print(expected_ones)
-        self.assertTrue(np.allclose(expected_ones, 1))
-        self.assertTrue(np.allclose(expected_zeros, 0))
 
 
 if __name__ == "__main__":

@@ -1,3 +1,8 @@
+/outputs/
+/data/
+/data
+/outputs
+
 # Initially taken from Github's Python gitignore file
 
 # Byte-compiled / optimized / DLL files
@@ -120,6 +125,3 @@ dmypy.json
 
 # TF code
 tensorflow_code
-
-# Models
-models
