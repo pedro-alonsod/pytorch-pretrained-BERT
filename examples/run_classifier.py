@@ -296,7 +296,7 @@ class RedditProcess(DataProcessor):
             guid = "%s-%s" % (line[4], line[5])
             text_a = line[0]
             text_b = line[1]
-            label = line[2]/line[3]
+            label = int(line[2])/int(line[3])
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
@@ -566,6 +566,17 @@ def pearson_and_spearman(preds, labels):
         "corr": (pearson_corr + spearman_corr) / 2,
     }
 
+def askreddit_score(preds, labels):
+    pearson_corr = pearsonr(preds, labels)[0]
+    spearman_corr = spearmanr(preds, labels)[0]
+    mean_square = np.mean((preds - labels)**2)
+    return {
+	"pearson": pearson_corr,
+	"spearmanr": spearman_corr,
+	"corr": (pearson_corr + spearman_corr) / 2,
+	"mse": mean_square,
+    }
+
 
 def compute_metrics(task_name, preds, labels):
     assert len(preds) == len(labels)
@@ -589,6 +600,8 @@ def compute_metrics(task_name, preds, labels):
         return {"acc": simple_accuracy(preds, labels)}
     elif task_name == "wnli":
         return {"acc": simple_accuracy(preds, labels)}
+    elif task_name == "reddit":
+        return askreddit_score(labels, preds)
     else:
         raise KeyError(task_name)
 
