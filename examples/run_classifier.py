@@ -293,10 +293,10 @@ class RedditProcess(DataProcessor):
         for (i, line) in enumerate(lines):
             if i == 0:
                 continue
-            guid = "%s-0" % (set_type)
+            guid = "%s-%s" % (line[4], line[5])
             text_a = line[0]
             text_b = line[1]
-            label = line[-1]
+            label = line[2]/line[3]
             examples.append(
                 InputExample(guid=guid, text_a=text_a, text_b=text_b, label=label))
         return examples
